@@ -114,6 +114,9 @@ adb shell /system/bin/pm hide com.phicomm.speaker.ijetty
 echo Dang tat com.phicomm.speaker.netctl...
 adb shell /system/bin/pm hide com.phicomm.speaker.netctl
 
+adb shell /system/bin/pm hide com.phicomm.speaker.systemtool
+adb shell /system/bin/pm hide com.phicomm.speaker.device
+
 echo Dang tat com.phicomm.speaker.otaservice...
 adb shell /system/bin/pm hide com.phicomm.speaker.otaservice
 
