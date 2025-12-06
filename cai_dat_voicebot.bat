@@ -1,161 +1,148 @@
 @echo off
-chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-title Cài đặt VoiceBot AI cho Phicomm R1
+title Cai dat VoiceBot AI cho Phicomm R1
 
-REM Biến đếm số lần reconnect
 set RECONNECT_COUNT=0
 set MAX_RECONNECT=3
 
-REM ============== FUNCTION: Reconnect ADB ==============
-REM Gọi khi gặp lỗi "no devices/emulators found"
 goto skip_reconnect_func
 
 :reconnect_adb
 set /a RECONNECT_COUNT+=1
 if !RECONNECT_COUNT! gtr %MAX_RECONNECT% (
     echo.
-    echo [LỖI] Đã thử kết nối lại %MAX_RECONNECT% lần nhưng không thành công!
+    echo [LOI] Da thu ket noi lai %MAX_RECONNECT% lan nhung khong thanh cong!
     pause
     goto menu
 )
 echo.
-echo [WARN] Mất kết nối ADB, đang kết nối lại... (lần !RECONNECT_COUNT!)
+echo [WARN] Mat ket noi ADB, dang ket noi lai... (lan !RECONNECT_COUNT!)
 adb connect 192.168.43.1:5555
 timeout /t 2 >nul
 goto :eof
 
 :skip_reconnect_func
-REM =====================================================
 
 :menu
 cls
 set RECONNECT_COUNT=0
 echo.
 echo ========================================================
-echo       CÀI ĐẶT VOICEBOT AI CHO PHICOMM R1
+echo       CAI DAT VOICEBOT AI CHO PHICOMM R1
 echo ========================================================
 echo.
 
-REM Bước 1: Hướng dẫn vào chế độ phát wifi
-echo [Bước 1] Chuẩn bị thiết bị
+echo [Buoc 1] Chuan bi thiet bi
 echo.
-echo   Vui lòng GIỮ NÚT trên loa trong 10 giây để vào 
-echo   chế độ phát WiFi (đèn trắng phát sáng nhấp nháy)
+echo   Vui long GIU NUT tren loa trong 10 giay de vao 
+echo   che do phat WiFi (den trang phat sang nhap nhay)
 echo.
 echo --------------------------------------------------------
 echo.
-echo [Bước 2] Kết nối WiFi từ máy tính
+echo [Buoc 2] Ket noi WiFi tu may tinh
 echo.
-echo   Mở WiFi trên máy tính và tìm mạng: Phicomm_R1_xxx
-echo   (xxx là các ký tự bất kỳ)
-echo   Kết nối tới mạng WiFi đó.
+echo   Mo WiFi tren may tinh va tim mang: Phicomm_R1_xxx
+echo   (xxx la cac ky tu bat ky)
+echo   Ket noi toi mang WiFi do.
 echo.
 echo --------------------------------------------------------
 
-REM Bước 3: Xác nhận đã kết nối WiFi
 :confirm_wifi
 echo.
-set /p confirm="Đã kết nối tới WiFi Phicomm_R1_xxx chưa? (Y/N): "
+set /p confirm="Da ket noi toi WiFi Phicomm_R1_xxx chua? (Y/N): "
 if /i "!confirm!"=="Y" goto connect_adb
 if /i "!confirm!"=="N" (
     echo.
-    echo Vui lòng thực hiện lại việc giữ nút trên loa...
+    echo Vui long thuc hien lai viec giu nut tren loa...
     goto confirm_wifi
 )
-echo Vui lòng nhập Y hoặc N
+echo Vui long nhap Y hoac N
 goto confirm_wifi
 
-REM Bước 4: Kết nối ADB TCP
 :connect_adb
 cls
 echo.
-echo [Bước 3] Kết nối ADB đến thiết bị
+echo [Buoc 3] Ket noi ADB den thiet bi
 echo.
-echo Đang dọn dẹp các tiến trình ADB cũ...
+echo Dang don dep cac tien trinh ADB cu...
 adb disconnect >nul
 taskkill /f /t /im adb.exe >nul
 adb devices >nul
 
 echo.
-echo Đang kết nối đến 192.168.43.1:5555...
+echo Dang ket noi den 192.168.43.1:5555...
 echo.
 adb connect 192.168.43.1:5555
 
-REM Kiểm tra kết nối - tìm từ "device" đứng riêng (không phải "devices")
 adb devices | findstr /ic "\<device\>" >nul
 if errorlevel 1 (
     echo.
-    echo [LỖI] Không thể kết nối đến thiết bị!
+    echo [LOI] Khong the ket noi den thiet bi!
     echo.
-    echo Vui lòng kiểm tra:
-    echo   1. Máy tính đã kết nối WiFi "Phicomm_R1" chưa?
-    echo   2. Loa đã vào chế độ phát WiFi chưa?
+    echo Vui long kiem tra:
+    echo   1. May tinh da ket noi WiFi "Phicomm_R1" chua?
+    echo   2. Loa da vao che do phat WiFi chua?
     echo.
     pause
     goto menu
 )
 
 echo.
-echo [OK] Kết nối ADB thành công!
+echo [OK] Ket noi ADB thanh cong!
 echo.
 timeout /t 2 >nul
 
-REM Bước 5: Tắt các service không cần thiết
 :step_hide_packages
 cls
 echo.
-echo [Bước 4] Tắt các ứng dụng không cần thiết trên loa
+echo [Buoc 4] Tat cac ung dung khong can thiet tren loa
 echo.
 
-REM Tắt từng package với kiểm tra lỗi
-echo Đang tắt com.phicomm.speaker.player...
+echo Dang tat com.phicomm.speaker.player...
 adb shell /system/bin/pm hide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto step_hide_packages
 
-echo Đang tắt com.phicomm.speaker.airskill...
+echo Dang tat com.phicomm.speaker.airskill...
 adb shell /system/bin/pm hide com.phicomm.speaker.airskill
 
-echo Đang tắt com.phicomm.speaker.exceptionreporter...
+echo Dang tat com.phicomm.speaker.exceptionreporter...
 adb shell /system/bin/pm hide com.phicomm.speaker.exceptionreporter
 
-echo Đang tắt com.phicomm.speaker.ijetty...
+echo Dang tat com.phicomm.speaker.ijetty...
 adb shell /system/bin/pm hide com.phicomm.speaker.ijetty
 
-echo Đang tắt com.phicomm.speaker.netctl...
+echo Dang tat com.phicomm.speaker.netctl...
 adb shell /system/bin/pm hide com.phicomm.speaker.netctl
 
-echo Đang tắt com.phicomm.speaker.otaservice...
+echo Dang tat com.phicomm.speaker.otaservice...
 adb shell /system/bin/pm hide com.phicomm.speaker.otaservice
 
-echo Đang tắt com.phicomm.speaker.productiontest...
+echo Dang tat com.phicomm.speaker.productiontest...
 adb shell /system/bin/pm hide com.phicomm.speaker.productiontest
 
-echo Đang tắt com.phicomm.speaker.bugreport...
+echo Dang tat com.phicomm.speaker.bugreport...
 adb shell /system/bin/pm hide com.phicomm.speaker.bugreport
 echo.
-echo [OK] Đã tắt các ứng dụng không cần thiết!
+echo [OK] Da tat cac ung dung khong can thiet!
 echo.
 timeout /t 2 >nul
 
-REM Bước 6: Push file APK lên thiết bị
 :step_push_apk
 cls
 echo.
-echo [Bước 5] Sao chép file cài đặt lên thiết bị
+echo [Buoc 5] Sao chep file cai dat len thiet bi
 echo.
 
-REM Kiểm tra file APK tồn tại
 if not exist "%~dp0app-voicebot.apk" (
-    echo [LỖI] Không tìm thấy file app-voicebot.apk!
+    echo [LOI] Khong tim thay file app-voicebot.apk!
     echo.
-    echo Vui lòng đặt file app-voicebot.apk vào cùng thư mục với file bat này.
+    echo Vui long dat file app-voicebot.apk vao cung thu muc voi file bat nay.
     echo.
     pause
     goto menu
 )
 
-echo Đang sao chép app-voicebot.apk lên thiết bị...
+echo Dang sao chep app-voicebot.apk len thiet bi...
 adb push "%~dp0app-voicebot.apk" /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0push_result.tmp"
 type "%~dp0push_result.tmp" | findstr /ic "no devices" >nul
 if not errorlevel 1 (
@@ -166,19 +153,17 @@ if not errorlevel 1 (
 type "%~dp0push_result.tmp"
 del "%~dp0push_result.tmp" 2>nul
 echo.
-echo [OK] Sao chép file thành công!
+echo [OK] Sao chep file thanh cong!
 echo.
 timeout /t 2 >nul
 
-REM Bước 7: Cài đặt APK
 :step_install_apk
 cls
 echo.
-echo [Bước 6] Cài đặt ứng dụng VoiceBot
+echo [Buoc 6] Cai dat ung dung VoiceBot
 echo.
-echo Đang cài đặt...
+echo Dang cai dat...
 adb shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0install_result.tmp"
-adb shell am start -n info.dourok.voicebot/.java.activities.MainActivity
 type "%~dp0install_result.tmp" | findstr /ic "no devices" >nul
 if not errorlevel 1 (
     del "%~dp0install_result.tmp" 2>nul
@@ -190,63 +175,65 @@ type "%~dp0install_result.tmp" | findstr /ic "Success" >nul
 if errorlevel 1 (
     del "%~dp0install_result.tmp" 2>nul
     echo.
-    echo [LỖI] Cài đặt thất bại!
+    echo [LOI] Cai dat that bai!
     echo.
     pause
     goto menu
 )
 del "%~dp0install_result.tmp" 2>nul
 echo.
-echo [OK] Cài đặt ứng dụng thành công!
+echo [OK] Cai dat ung dung thanh cong!
+echo.
+
+echo Dang khoi dong ung dung...
+adb shell am start -n info.dourok.voicebot/.java.activities.MainActivity
 echo.
 timeout /t 2 >nul
 
-REM Bước 8: Thông báo hoàn tất cài đặt
 cls
 echo.
 echo ========================================================
-echo       CÀI ĐẶT HOÀN TẤT!
+echo       CAI DAT HOAN TAT!
 echo ========================================================
 echo.
-echo [Bước 7] Cấu hình WiFi cho thiết bị
+echo [Buoc 7] Cau hinh WiFi cho thiet bi
 echo.
-echo   1. GIỮ NÚT trên loa đến khi nghe thấy:
-echo      "Vào chế độ cài đặt WiFi"
+echo   1. GIU NUT tren loa den khi nghe thay:
+echo      "Vao che do cai dat WiFi"
 echo.
 echo --------------------------------------------------------
 echo.
 pause
 
-REM Bước 9: Hướng dẫn cấu hình WiFi
 cls
 echo.
 echo ========================================================
-echo       CẤU HÌNH WIFI CHO THIẾT BỊ
+echo       CAU HINH WIFI CHO THIET BI
 echo ========================================================
 echo.
-echo   1. Mở WiFi trên máy tính
+echo   1. Mo WiFi tren may tinh
 echo.
-echo   2. Kết nối vào mạng WiFi: "Phicomm_R1" hoặc "VoiceBot_XXXX"
+echo   2. Ket noi vao mang WiFi: "Phicomm_R1" hoac "VoiceBot_XXXX"
 echo.
-echo   3. Mở trình duyệt web và nhập địa chỉ:
+echo   3. Mo trinh duyet web va nhap dia chi:
 echo.
 echo      http://192.168.43.1:8080
 echo.
-echo   4. Chọn mạng WiFi gia đình và nhập mật khẩu
+echo   4. Chon mang WiFi gia dinh va nhap mat khau
 echo.
-echo   5. Nhấn "Kết nối" và đợi thiết bị kết nối
+echo   5. Nhan "Ket noi" va doi thiet bi ket noi
 echo.
 echo ========================================================
 echo.
-echo Sau khi kết nối WiFi thành công, thiết bị sẽ đọc địa chỉ IP.
-echo Bạn có thể sử dụng địa chỉ IP này để kết nối ADB sau này.
+echo Sau khi ket noi WiFi thanh cong, thiet bi se doc dia chi IP.
+echo Ban co the su dung dia chi IP nay de ket noi ADB sau nay.
 echo.
 echo ========================================================
 echo.
 pause
 
 echo.
-echo Cảm ơn bạn đã sử dụng VoiceBot AI!
+echo Cam on ban da su dung VoiceBot AI!
 echo.
 timeout /t 3 >nul
 exit
