@@ -201,12 +201,6 @@ echo.
 echo   1. GIU NUT tren loa den khi nghe thay:
 echo      "Vao che do cai dat WiFi"
 echo.
-echo --------------------------------------------------------
-echo.
-pause
-
-cls
-echo.
 echo ========================================================
 echo       CAU HINH WIFI CHO THIET BI
 echo ========================================================
