@@ -4,8 +4,34 @@ setlocal enabledelayedexpansion
 
 title Cài đặt VoiceBot AI cho Phicomm R1
 
+REM Biến đếm số lần reconnect
+set RECONNECT_COUNT=0
+set MAX_RECONNECT=3
+
+REM ============== FUNCTION: Reconnect ADB ==============
+REM Gọi khi gặp lỗi "no devices/emulators found"
+goto skip_reconnect_func
+
+:reconnect_adb
+set /a RECONNECT_COUNT+=1
+if !RECONNECT_COUNT! gtr %MAX_RECONNECT% (
+    echo.
+    echo [LỖI] Đã thử kết nối lại %MAX_RECONNECT% lần nhưng không thành công!
+    pause
+    goto menu
+)
+echo.
+echo [WARN] Mất kết nối ADB, đang kết nối lại... (lần !RECONNECT_COUNT!)
+adb connect 192.168.43.1:5555
+timeout /t 2 >nul
+goto :eof
+
+:skip_reconnect_func
+REM =====================================================
+
 :menu
 cls
+set RECONNECT_COUNT=0
 echo.
 echo ========================================================
 echo       CÀI ĐẶT VOICEBOT AI CHO PHICOMM R1
@@ -48,18 +74,17 @@ echo.
 echo [Bước 3] Kết nối ADB đến thiết bị
 echo.
 echo Đang dọn dẹp các tiến trình ADB cũ...
-adb disconnect >nul 2>&1
-taskkill /f /t /im adb.exe >nul 2>&1
-timeout /t 2 >nul
-adb devices >nul 2>&1
+adb disconnect >nul
+taskkill /f /t /im adb.exe >nul
+adb devices >nul
 
 echo.
 echo Đang kết nối đến 192.168.43.1:5555...
 echo.
 adb connect 192.168.43.1:5555
 
-REM Kiểm tra kết nối
-adb devices | findstr /ic "192.168.43.1:5555" | findstr /ic "device" >nul
+REM Kiểm tra kết nối - tìm từ "device" đứng riêng (không phải "devices")
+adb devices | findstr /ic "\<device\>" >nul
 if errorlevel 1 (
     echo.
     echo [LỖI] Không thể kết nối đến thiết bị!
@@ -78,28 +103,34 @@ echo.
 timeout /t 2 >nul
 
 REM Bước 5: Tắt các service không cần thiết
+:step_hide_packages
 cls
 echo.
 echo [Bước 4] Tắt các ứng dụng không cần thiết trên loa
 echo.
+
+REM Tắt từng package với kiểm tra lỗi
 echo Đang tắt com.phicomm.speaker.player...
-adb shell /system/bin/pm hide com.phicomm.speaker.player
-echo Đang tắt com.phicomm.speaker.device...
-adb shell /system/bin/pm hide com.phicomm.speaker.device
+adb shell /system/bin/pm hide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto step_hide_packages
+
 echo Đang tắt com.phicomm.speaker.airskill...
 adb shell /system/bin/pm hide com.phicomm.speaker.airskill
+
 echo Đang tắt com.phicomm.speaker.exceptionreporter...
 adb shell /system/bin/pm hide com.phicomm.speaker.exceptionreporter
+
 echo Đang tắt com.phicomm.speaker.ijetty...
 adb shell /system/bin/pm hide com.phicomm.speaker.ijetty
+
 echo Đang tắt com.phicomm.speaker.netctl...
 adb shell /system/bin/pm hide com.phicomm.speaker.netctl
+
 echo Đang tắt com.phicomm.speaker.otaservice...
 adb shell /system/bin/pm hide com.phicomm.speaker.otaservice
-echo Đang tắt com.phicomm.speaker.systemtool...
-adb shell /system/bin/pm hide com.phicomm.speaker.systemtool
+
 echo Đang tắt com.phicomm.speaker.productiontest...
 adb shell /system/bin/pm hide com.phicomm.speaker.productiontest
+
 echo Đang tắt com.phicomm.speaker.bugreport...
 adb shell /system/bin/pm hide com.phicomm.speaker.bugreport
 echo.
@@ -108,6 +139,7 @@ echo.
 timeout /t 2 >nul
 
 REM Bước 6: Push file APK lên thiết bị
+:step_push_apk
 cls
 echo.
 echo [Bước 5] Sao chép file cài đặt lên thiết bị
@@ -124,33 +156,46 @@ if not exist "%~dp0app-voicebot.apk" (
 )
 
 echo Đang sao chép app-voicebot.apk lên thiết bị...
-adb push "%~dp0app-voicebot.apk" /data/local/tmp/app-voicebot.apk
-if errorlevel 1 (
-    echo.
-    echo [LỖI] Không thể sao chép file lên thiết bị!
-    echo.
-    pause
-    goto menu
+adb push "%~dp0app-voicebot.apk" /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0push_result.tmp"
+type "%~dp0push_result.tmp" | findstr /ic "no devices" >nul
+if not errorlevel 1 (
+    del "%~dp0push_result.tmp" 2>nul
+    call :reconnect_adb
+    goto step_push_apk
 )
+type "%~dp0push_result.tmp"
+del "%~dp0push_result.tmp" 2>nul
 echo.
 echo [OK] Sao chép file thành công!
 echo.
 timeout /t 2 >nul
 
 REM Bước 7: Cài đặt APK
+:step_install_apk
 cls
 echo.
 echo [Bước 6] Cài đặt ứng dụng VoiceBot
 echo.
 echo Đang cài đặt...
-adb shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk
+adb shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0install_result.tmp"
+adb shell am start -n info.dourok.voicebot/.java.activities.MainActivity
+type "%~dp0install_result.tmp" | findstr /ic "no devices" >nul
+if not errorlevel 1 (
+    del "%~dp0install_result.tmp" 2>nul
+    call :reconnect_adb
+    goto step_install_apk
+)
+type "%~dp0install_result.tmp"
+type "%~dp0install_result.tmp" | findstr /ic "Success" >nul
 if errorlevel 1 (
+    del "%~dp0install_result.tmp" 2>nul
     echo.
     echo [LỖI] Cài đặt thất bại!
     echo.
     pause
     goto menu
 )
+del "%~dp0install_result.tmp" 2>nul
 echo.
 echo [OK] Cài đặt ứng dụng thành công!
 echo.
