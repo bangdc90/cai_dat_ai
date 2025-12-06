@@ -165,28 +165,64 @@ cls
 echo.
 echo [Buoc 6] Cai dat ung dung VoiceBot
 echo.
-echo Dang cai dat...
+
+set INSTALL_RETRY=0
+set MAX_INSTALL_RETRY=8
+
+:install_loop
+set /a INSTALL_RETRY+=1
+echo Dang cai dat... (lan !INSTALL_RETRY!/%MAX_INSTALL_RETRY%)
+
 adb shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0install_result.tmp"
+
+:: Check for no devices error
 type "%~dp0install_result.tmp" | findstr /ic "no devices" >nul
 if not errorlevel 1 (
     del "%~dp0install_result.tmp" 2>nul
     call :reconnect_adb
-    goto step_install_apk
+    set INSTALL_RETRY=0
+    goto install_loop
 )
-type "%~dp0install_result.tmp"
+
+:: Check for success
 type "%~dp0install_result.tmp" | findstr /ic "Success" >nul
-if errorlevel 1 (
+if not errorlevel 1 (
+    type "%~dp0install_result.tmp"
     del "%~dp0install_result.tmp" 2>nul
     echo.
-    echo [LOI] Cai dat that bai!
+    echo [OK] Cai dat ung dung thanh cong!
     echo.
-    pause
-    goto menu
+    goto install_success
 )
+
+:: Check for DEXOPT error - need retry
+type "%~dp0install_result.tmp" | findstr /ic "INSTALL_FAILED_DEXOPT" >nul
+if not errorlevel 1 (
+    echo   [WARN] INSTALL_FAILED_DEXOPT - Thu lai sau 1 giay...
+    del "%~dp0install_result.tmp" 2>nul
+    timeout /t 1 /nobreak >nul
+    
+    if !INSTALL_RETRY! lss %MAX_INSTALL_RETRY% (
+        goto install_loop
+    ) else (
+        echo.
+        echo [LOI] Cai dat that bai sau %MAX_INSTALL_RETRY% lan thu!
+        echo.
+        pause
+        goto menu
+    )
+)
+
+:: Other error
+type "%~dp0install_result.tmp"
 del "%~dp0install_result.tmp" 2>nul
 echo.
-echo [OK] Cai dat ung dung thanh cong!
+echo [LOI] Cai dat that bai! Giu nguyen thiet bi va thu lai tu dau.
 echo.
+pause
+goto menu
+
+:install_success
 
 echo Dang khoi dong ung dung...
 adb shell am start -n info.dourok.voicebot/.java.activities.MainActivity
