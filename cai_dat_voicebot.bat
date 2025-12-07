@@ -75,8 +75,12 @@ echo Dang ket noi den 192.168.43.1:5555...
 echo.
 adb connect 192.168.43.1:5555
 
-adb devices | findstr /ic "\<device\>" >nul
+:: Check if device is connected (look for "device" at end of line, not "devices")
+adb devices > "%~dp0adb_devices.tmp"
+type "%~dp0adb_devices.tmp"
+findstr /r "5555.*device$" "%~dp0adb_devices.tmp" >nul
 if errorlevel 1 (
+    del "%~dp0adb_devices.tmp" 2>nul
     echo.
     echo [LOI] Khong the ket noi den thiet bi!
     echo.
@@ -87,6 +91,7 @@ if errorlevel 1 (
     pause
     goto menu
 )
+del "%~dp0adb_devices.tmp" 2>nul
 
 echo.
 echo [OK] Ket noi ADB thanh cong!
