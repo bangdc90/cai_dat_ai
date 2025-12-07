@@ -284,7 +284,7 @@ echo ========================================================
 echo.
 echo   1. Mo WiFi tren may tinh
 echo.
-echo   2. Ket noi vao mang WiFi: "Phicomm_R1" hoac "VoiceBot_XXXX"
+echo   2. Ket noi vao mang WiFi: "Phicomm_R1"
 echo.
 echo   3. Mo trinh duyet web va nhap dia chi:
 echo.
