@@ -207,9 +207,9 @@ if not errorlevel 1 (
     ) else (
         echo.
         echo [LOI] Cai dat that bai sau %MAX_INSTALL_RETRY% lan thu!
+        echo Dang khoi phuc trang thai cu cua loa...
         echo.
-        pause
-        goto menu
+        goto restore_packages
     )
 )
 
@@ -217,7 +217,45 @@ if not errorlevel 1 (
 type "%~dp0install_result.tmp"
 del "%~dp0install_result.tmp" 2>nul
 echo.
-echo [LOI] Cai dat that bai! Giu nguyen thiet bi va thu lai tu dau.
+echo [LOI] Cai dat that bai! Dang khoi phuc trang thai cu cua loa...
+echo.
+goto restore_packages
+
+:restore_packages
+echo Dang khoi phuc com.phicomm.speaker.player...
+adb shell /system/bin/pm unhide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto restore_packages
+
+echo Dang khoi phuc com.phicomm.speaker.device...
+adb shell /system/bin/pm unhide com.phicomm.speaker.device
+
+echo Dang khoi phuc com.phicomm.speaker.airskill...
+adb shell /system/bin/pm unhide com.phicomm.speaker.airskill
+
+echo Dang khoi phuc com.phicomm.speaker.exceptionreporter...
+adb shell /system/bin/pm unhide com.phicomm.speaker.exceptionreporter
+
+echo Dang khoi phuc com.phicomm.speaker.ijetty...
+adb shell /system/bin/pm unhide com.phicomm.speaker.ijetty
+
+echo Dang khoi phuc com.phicomm.speaker.netctl...
+adb shell /system/bin/pm unhide com.phicomm.speaker.netctl
+
+echo Dang khoi phuc com.phicomm.speaker.otaservice...
+adb shell /system/bin/pm unhide com.phicomm.speaker.otaservice
+
+echo Dang khoi phuc com.phicomm.speaker.systemtool...
+adb shell /system/bin/pm unhide com.phicomm.speaker.systemtool
+
+echo Dang khoi phuc com.phicomm.speaker.productiontest...
+adb shell /system/bin/pm unhide com.phicomm.speaker.productiontest
+
+echo Dang khoi phuc com.phicomm.speaker.bugreport...
+adb shell /system/bin/pm unhide com.phicomm.speaker.bugreport
+
+echo.
+echo [OK] Da khoi phuc trang thai cu cua loa.
+echo.
+echo Vui long thu lai tu dau.
 echo.
 pause
 goto menu
