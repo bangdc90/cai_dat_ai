@@ -3,6 +3,9 @@ setlocal enabledelayedexpansion
 
 title Cai dat VoiceBot AI cho Phicomm R1
 
+:: Set ADB path to the same folder as this bat file
+set "ADB=%~dp0adb"
+
 set RECONNECT_COUNT=0
 set MAX_RECONNECT=3
 
@@ -18,7 +21,7 @@ if !RECONNECT_COUNT! gtr %MAX_RECONNECT% (
 )
 echo.
 echo [WARN] Mat ket noi ADB, dang ket noi lai... (lan !RECONNECT_COUNT!)
-adb connect 192.168.43.1:5555
+"%ADB%" connect 192.168.43.1:5555
 timeout /t 2 >nul
 goto :eof
 
@@ -66,17 +69,17 @@ echo.
 echo [Buoc 3] Ket noi ADB den thiet bi
 echo.
 echo Dang don dep cac tien trinh ADB cu...
-adb disconnect >nul
-taskkill /f /t /im adb.exe >nul
-adb devices >nul
+"%ADB%" disconnect >nul
+taskkill /f /t /im adb.exe >nul 2>&1
+"%ADB%" devices >nul
 
 echo.
 echo Dang ket noi den 192.168.43.1:5555...
 echo.
-adb connect 192.168.43.1:5555
+"%ADB%" connect 192.168.43.1:5555
 
 :: Check if device is connected (look for "device" at end of line, not "devices")
-adb devices > "%~dp0adb_devices.tmp"
+"%ADB%" devices > "%~dp0adb_devices.tmp"
 type "%~dp0adb_devices.tmp"
 findstr /r "5555.*device$" "%~dp0adb_devices.tmp" >nul
 if errorlevel 1 (
@@ -105,31 +108,31 @@ echo [Buoc 4] Tat cac ung dung khong can thiet tren loa
 echo.
 
 echo Dang tat com.phicomm.speaker.player...
-adb shell /system/bin/pm hide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto step_hide_packages
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto step_hide_packages
 
 echo Dang tat com.phicomm.speaker.airskill...
-adb shell /system/bin/pm hide com.phicomm.speaker.airskill
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.airskill
 
 echo Dang tat com.phicomm.speaker.exceptionreporter...
-adb shell /system/bin/pm hide com.phicomm.speaker.exceptionreporter
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.exceptionreporter
 
 echo Dang tat com.phicomm.speaker.ijetty...
-adb shell /system/bin/pm hide com.phicomm.speaker.ijetty
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.ijetty
 
 echo Dang tat com.phicomm.speaker.netctl...
-adb shell /system/bin/pm hide com.phicomm.speaker.netctl
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.netctl
 
-adb shell /system/bin/pm hide com.phicomm.speaker.systemtool
-adb shell /system/bin/pm hide com.phicomm.speaker.device
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.systemtool
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.device
 
 echo Dang tat com.phicomm.speaker.otaservice...
-adb shell /system/bin/pm hide com.phicomm.speaker.otaservice
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.otaservice
 
 echo Dang tat com.phicomm.speaker.productiontest...
-adb shell /system/bin/pm hide com.phicomm.speaker.productiontest
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.productiontest
 
 echo Dang tat com.phicomm.speaker.bugreport...
-adb shell /system/bin/pm hide com.phicomm.speaker.bugreport
+"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.bugreport
 echo.
 echo [OK] Da tat cac ung dung khong can thiet!
 echo.
@@ -151,7 +154,7 @@ if not exist "%~dp0app-voicebot.apk" (
 )
 
 echo Dang sao chep app-voicebot.apk len thiet bi...
-adb push "%~dp0app-voicebot.apk" /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0push_result.tmp"
+"%ADB%" push "%~dp0app-voicebot.apk" /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0push_result.tmp"
 type "%~dp0push_result.tmp" | findstr /ic "no devices" >nul
 if not errorlevel 1 (
     del "%~dp0push_result.tmp" 2>nul
@@ -178,7 +181,7 @@ set MAX_INSTALL_RETRY=8
 set /a INSTALL_RETRY+=1
 echo Dang cai dat... (lan !INSTALL_RETRY!/%MAX_INSTALL_RETRY%)
 
-adb shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0install_result.tmp"
+"%ADB%" shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk 2>&1 > "%~dp0install_result.tmp"
 
 :: Check for no devices error
 type "%~dp0install_result.tmp" | findstr /ic "no devices" >nul
@@ -228,34 +231,34 @@ goto restore_packages
 
 :restore_packages
 echo Dang khoi phuc com.phicomm.speaker.player...
-adb shell /system/bin/pm unhide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto restore_packages
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.player 2>&1 | findstr /ic "no devices" >nul && call :reconnect_adb && goto restore_packages
 
 echo Dang khoi phuc com.phicomm.speaker.device...
-adb shell /system/bin/pm unhide com.phicomm.speaker.device
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.device
 
 echo Dang khoi phuc com.phicomm.speaker.airskill...
-adb shell /system/bin/pm unhide com.phicomm.speaker.airskill
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.airskill
 
 echo Dang khoi phuc com.phicomm.speaker.exceptionreporter...
-adb shell /system/bin/pm unhide com.phicomm.speaker.exceptionreporter
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.exceptionreporter
 
 echo Dang khoi phuc com.phicomm.speaker.ijetty...
-adb shell /system/bin/pm unhide com.phicomm.speaker.ijetty
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.ijetty
 
 echo Dang khoi phuc com.phicomm.speaker.netctl...
-adb shell /system/bin/pm unhide com.phicomm.speaker.netctl
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.netctl
 
 echo Dang khoi phuc com.phicomm.speaker.otaservice...
-adb shell /system/bin/pm unhide com.phicomm.speaker.otaservice
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.otaservice
 
 echo Dang khoi phuc com.phicomm.speaker.systemtool...
-adb shell /system/bin/pm unhide com.phicomm.speaker.systemtool
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.systemtool
 
 echo Dang khoi phuc com.phicomm.speaker.productiontest...
-adb shell /system/bin/pm unhide com.phicomm.speaker.productiontest
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.productiontest
 
 echo Dang khoi phuc com.phicomm.speaker.bugreport...
-adb shell /system/bin/pm unhide com.phicomm.speaker.bugreport
+"%ADB%" shell /system/bin/pm unhide com.phicomm.speaker.bugreport
 
 echo.
 echo [OK] Da khoi phuc trang thai cu cua loa.
@@ -268,7 +271,7 @@ goto menu
 :install_success
 
 echo Dang khoi dong ung dung...
-adb shell am start -n info.dourok.voicebot/.java.activities.MainActivity
+"%ADB%" shell am start -n info.dourok.voicebot/.java.activities.MainActivity
 echo.
 timeout /t 2 >nul
 
