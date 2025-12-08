@@ -32,6 +32,15 @@ cls
 set RECONNECT_COUNT=0
 echo.
 echo ========================================================
+echo                      CHU Y QUAN TRONG
+echo ========================================================
+echo.
+echo   [!] KHONG DUOC RUT DIEN CUA LOA KHI DANG CAI DAT!
+echo.
+echo   Neu xay ra loi, phan mem se tu dong khoi phuc trang
+echo   thai goc cho loa. Vui long doi cho den khi hoan tat.
+echo.
+echo ========================================================
 echo       CAI DAT VOICEBOT AI CHO PHICOMM R1
 echo ========================================================
 echo.
@@ -281,14 +290,34 @@ echo ========================================================
 echo       CAI DAT HOAN TAT!
 echo ========================================================
 echo.
-echo [Buoc 7] Cau hinh WiFi cho thiet bi
+echo [Buoc 7] Khoi dong lai thiet bi
+echo.
+echo   1. RUT DIEN cua loa
+echo.
+echo   2. CHO 15 GIAY
+echo.
+echo   3. CAM LAI DIEN cho loa
+echo.
+echo   4. Doi loa khoi dong hoan tat (khoang 30 giay)
+echo.
+echo ========================================================
+echo.
+pause
+
+cls
+echo.
+echo ========================================================
+echo       CAU HINH WIFI CHO THIET BI
+echo ========================================================
+echo.
+echo [Buoc 8] Vao che do cai dat WiFi
 echo.
 echo   1. GIU NUT tren loa den khi nghe thay:
 echo      "Vao che do cai dat WiFi"
 echo.
 echo ========================================================
-echo       CAU HINH WIFI CHO THIET BI
-echo ========================================================
+echo.
+echo [Buoc 9] Ket noi WiFi cho loa
 echo.
 echo   1. Mo WiFi tren may tinh
 echo.
