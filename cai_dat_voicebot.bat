@@ -213,7 +213,7 @@ if not errorlevel 1 (
 )
 
 :: Check for DEXOPT error - need retry
-type "%~dp0install_result.tmp" | findstr /ic "INSTALL_FAILED_DEXOPT" >nul
+type "%~dp0install_result.tmp" | findstr /i /c:"INSTALL_FAILED_DEXOPT" >nul
 if not errorlevel 1 (
     echo   [WARN] INSTALL_FAILED_DEXOPT - Thu lai sau 1 giay...
     del "%~dp0install_result.tmp" 2>nul
@@ -228,6 +228,24 @@ if not errorlevel 1 (
         echo.
         goto restore_packages
     )
+)
+
+:: Check for UPDATE_INCOMPATIBLE error - need uninstall old app first
+type "%~dp0install_result.tmp" | findstr /i /c:"INSTALL_FAILED_UPDATE_INCOMPATIBLE" >nul
+if not errorlevel 1 (
+    echo.
+    echo   [WARN] Phat hien phien ban cu khong tuong thich!
+    echo   Dang go cai dat phien ban cu...
+    del "%~dp0install_result.tmp" 2>nul
+    
+    "%ADB%" shell /system/bin/pm uninstall info.dourok.voicebot
+    
+    echo   [OK] Da go cai dat phien ban cu.
+    echo   Dang cai dat lai...
+    echo.
+    timeout /t 1 /nobreak >nul
+    set INSTALL_RETRY=0
+    goto install_loop
 )
 
 :: Other error
@@ -293,55 +311,38 @@ echo.
 echo [Buoc 7] Khoi dong lai thiet bi
 echo.
 echo   1. RUT DIEN cua loa
-echo.
 echo   2. CHO 15 GIAY
-echo.
 echo   3. CAM LAI DIEN cho loa
-echo.
 echo   4. Doi loa khoi dong hoan tat (khoang 30 giay)
 echo.
-echo ========================================================
-echo.
-pause
-
-cls
-echo.
-echo ========================================================
-echo       CAU HINH WIFI CHO THIET BI
-echo ========================================================
+echo --------------------------------------------------------
 echo.
 echo [Buoc 8] Vao che do cai dat WiFi
 echo.
-echo   1. GIU NUT tren loa den khi nghe thay:
-echo      "Vao che do cai dat WiFi"
+echo   GIU NUT tren loa den khi nghe thay:
+echo   "Vao che do cai dat WiFi"
 echo.
-echo ========================================================
+echo --------------------------------------------------------
 echo.
 echo [Buoc 9] Ket noi WiFi cho loa
 echo.
 echo   1. Mo WiFi tren may tinh
-echo.
 echo   2. Ket noi vao mang WiFi: "Phicomm_R1"
-echo.
 echo   3. Mo trinh duyet web va nhap dia chi:
 echo.
 echo      http://192.168.43.1:8080
 echo.
 echo   4. Chon mang WiFi gia dinh va nhap mat khau
-echo.
 echo   5. Nhan "Ket noi" va doi thiet bi ket noi
 echo.
-echo ========================================================
+echo --------------------------------------------------------
 echo.
 echo Sau khi ket noi WiFi thanh cong, thiet bi se doc dia chi IP.
 echo Ban co the su dung dia chi IP nay de ket noi ADB sau nay.
 echo.
 echo ========================================================
 echo.
-pause
-
-echo.
 echo Cam on ban da su dung VoiceBot AI!
 echo.
-timeout /t 3 >nul
+pause
 exit
