@@ -134,9 +134,6 @@ echo Dang tat com.phicomm.speaker.netctl...
 "%ADB%" shell /system/bin/pm hide com.phicomm.speaker.systemtool
 "%ADB%" shell /system/bin/pm hide com.phicomm.speaker.device
 
-echo Dang tat com.phicomm.speaker.otaservice...
-"%ADB%" shell /system/bin/pm hide com.phicomm.speaker.otaservice
-
 echo Dang tat com.phicomm.speaker.productiontest...
 "%ADB%" shell /system/bin/pm hide com.phicomm.speaker.productiontest
 
