@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VoiceBot AI Installer</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <HTA:APPLICATION
+        ID="VoiceBotInstaller"
+        APPLICATIONNAME="VoiceBot Installer"
+        BORDER="thin"
+        BORDERSTYLE="normal"
+        CAPTION="yes"
+        CONTEXTMENU="no"
+        INNERBORDER="no"
+        MAXIMIZEBUTTON="no"
+        MINIMIZEBUTTON="yes"
+        NAVIGABLE="no"
+        SCROLL="auto"
+        SCROLLFLAT="yes"
+        SELECTION="no"
+        SHOWINTASKBAR="yes"
+        SINGLEINSTANCE="yes"
+        SYSMENU="yes"
+        VERSION="1.0"
+        WINDOWSTATE="normal"
+    />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100%;
+            padding: 15px;
+        }
+        .container { max-width: 780px; margin: 0 auto; }
+        h1 { text-align: center; color: #89b4fa; margin-bottom: 8px; font-size: 28px; }
+        .subtitle { text-align: center; color: #a6adc8; margin-bottom: 20px; font-size: 15px; }
+        
+        /* Mode Selection */
+        .mode-selection {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 25px 20px;
+            border: 2px solid #45475a;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .mode-btn:hover {
+            border-color: #89b4fa;
+            background: rgba(137, 180, 250, 0.1);
+        }
+        .mode-btn.selected {
+            border-color: #a6e3a1;
+            background: rgba(166, 227, 161, 0.15);
+        }
+        .mode-btn h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #cdd6f4;
+        }
+        .mode-btn.selected h3 {
+            color: #a6e3a1;
+        }
+        .mode-btn p {
+            font-size: 13px;
+            color: #6c7086;
+        }
+        .mode-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+        
+        .warning-box {
+            background: rgba(243, 139, 168, 0.15);
+            border: 1px solid #f38ba8;
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 18px;
+            font-size: 14px;
+            color: #f38ba8;
+            text-align: center;
+        }
+        .instructions {
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .instructions.show { display: block; }
+        .instructions h3 { color: #f9e2af; margin-bottom: 10px; font-size: 15px; }
+        .instructions ol { margin-left: 25px; color: #cdd6f4; font-size: 14px; line-height: 2; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; display: none; }
+        .input-group.show { display: flex; }
+        .input-group label { width: 110px; font-size: 15px; }
+        .input-group input {
+            flex: 1; padding: 12px 15px; border: 1px solid #45475a; border-radius: 6px;
+            background: #313244; color: #fff; font-size: 15px; font-family: Consolas, monospace;
+        }
+        .btn {
+            padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 15px; font-weight: bold;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary {
+            background: #a6e3a1; color: #1e1e2e; width: 100%;
+            padding: 16px; font-size: 18px; margin-bottom: 18px; display: none;
+        }
+        .btn-primary.show { display: block; }
+        .btn-secondary { background: #45475a; color: #fff; }
+        .progress-section { margin-bottom: 12px; display: none; }
+        .progress-section.show { display: block; }
+        .progress-section h3 { font-size: 15px; margin-bottom: 8px; color: #cdd6f4; }
+        .progress-bar {
+            height: 28px; background: #313244; border-radius: 6px;
+            overflow: hidden; position: relative;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, #89b4fa, #a6e3a1);
+            width: 0%; border-radius: 5px;
+        }
+        .progress-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 13px; font-weight: bold; color: #fff; text-shadow: 0 0 3px rgba(0,0,0,0.5);
+        }
+        .log-box {
+            background: #11111b; border: 1px solid #313244; border-radius: 6px;
+            padding: 12px; height: 180px; overflow-y: auto;
+            font-family: Consolas, monospace; font-size: 13px; line-height: 1.6;
+            display: none;
+        }
+        .log-box.show { display: block; }
+        .log-box .success { color: #a6e3a1; }
+        .log-box .error { color: #f38ba8; }
+        .log-box .info { color: #89b4fa; }
+        .log-box .warn { color: #f9e2af; }
+        .status-bar {
+            margin-top: 10px; padding: 10px 15px; background: rgba(255,255,255,0.05);
+            border-radius: 6px; font-size: 14px; color: #a6adc8; display: none;
+        }
+        .status-bar.show { display: block; }
+        .step-indicator { display: none; justify-content: space-between; margin-bottom: 12px; }
+        .step-indicator.show { display: flex; }
+        .step {
+            flex: 1; text-align: center; padding: 10px 6px; background: #313244;
+            margin: 0 3px; border-radius: 6px; font-size: 12px; color: #6c7086;
+        }
+        .step.active { background: #89b4fa; color: #1e1e2e; }
+        .step.done { background: #a6e3a1; color: #1e1e2e; }
+        .step.error { background: #f38ba8; color: #1e1e2e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>C&#224;i &#272;&#7863;t AI cho loa Phicomm R1</h1>
+        <p class="subtitle" style="display:block; margin-bottom:15px; font-size:14px;">By V&#7885;c S&#297;</p>
+
+        <div class="warning-box">
+            &#9888; KH&#212;NG &#272;&#431;&#7906;C R&#218;T &#272;I&#7878;N C&#7910;A LOA KHI &#272;ANG C&#192;I &#272;&#7862;T!
+        </div>
+
+        <!-- Mode Selection -->
+        <div class="mode-selection" id="modeSelection">
+            <div class="mode-btn" id="modeNew" onclick="selectMode('new')">
+                <div class="mode-icon">&#128229;</div>
+                <h3>C&#192;I &#272;&#7862;T M&#7898;I</h3>
+                <p>C&#224;i &#273;&#7863;t l&#7847;n &#273;&#7847;u ti&#234;n<br>tr&#234;n loa Phicomm R1</p>
+            </div>
+            <div class="mode-btn" id="modeUpdate" onclick="selectMode('update')">
+                <div class="mode-icon">&#128260;</div>
+                <h3>C&#7852;P NH&#7852;T</h3>
+                <p>C&#7853;p nh&#7853;t phi&#234;n b&#7843;n m&#7899;i<br>cho loa &#273;&#227; c&#224;i VoiceBot</p>
+            </div>
+        </div>
+
+        <!-- Instructions for New Install -->
+        <div class="instructions" id="instructNew">
+            <h3>H&#432;&#7899;ng d&#7851;n chu&#7849;n b&#7883; (C&#224;i &#273;&#7863;t m&#7899;i):</h3>
+            <ol>
+                <li><strong>GI&#7918; N&#218;T</strong> tr&#234;n loa trong 10 gi&#226;y - &#272;&#232;n tr&#7855;ng nh&#7845;p nh&#225;y</li>
+                <li>K&#7871;t n&#7889;i m&#225;y t&#237;nh v&#224;o WiFi: <strong>Phicomm_R1_xxx</strong></li>
+                <li>Gi&#7919; nguy&#234;n IP m&#7863;c &#273;&#7883;nh: <strong>192.168.43.1</strong></li>
+                <li>Nh&#7845;n n&#250;t <strong>"B&#7854;T &#272;&#7846;U C&#192;I &#272;&#7862;T"</strong> b&#234;n d&#432;&#7899;i</li>
+            </ol>
+        </div>
+
+        <!-- Instructions for Update -->
+        <div class="instructions" id="instructUpdate">
+            <h3>H&#432;&#7899;ng d&#7851;n chu&#7849;n b&#7883; (C&#7853;p nh&#7853;t):</h3>
+            <ol>
+                <li>N&#7871;u b&#7841;n &#273;&#227; bi&#7871;t IP hi&#7879;n t&#7841;i c&#7911;a loa, h&#227;y nh&#7853;p v&#224;o &#244; <strong>&#272;&#7883;a ch&#7881; IP</strong> v&#224; b&#7845;m <strong>Ki&#7875;m tra</strong></li>
+                <li>N&#7871;u b&#7841;n ch&#432;a bi&#7871;t, h&#227;y k&#7871;t n&#7889;i t&#7899;i WiFi gia &#273;&#236;nh. Loa s&#7869; &#273;&#7885;c cho b&#7841;n nghe &#273;&#7883;a ch&#7881; IP sau khi k&#7871;t n&#7889;i xong</li>
+                <li>Nh&#7845;n n&#250;t <strong>"B&#7854;T &#272;&#7846;U C&#192;I &#272;&#7862;T"</strong> b&#234;n d&#432;&#7899;i</li>
+            </ol>
+        </div>
+
+        <div class="input-group" id="ipGroup">
+            <label>&#272;&#7883;a ch&#7881; IP:</label>
+            <input type="text" id="ipAddress" value="192.168.43.1">
+            <button class="btn btn-secondary" onclick="testConnection()">Ki&#7875;m tra</button>
+        </div>
+
+        <button class="btn btn-primary" id="installBtn" onclick="startInstall()">
+            B&#7854;T &#272;&#7846;U C&#192;I &#272;&#7862;T
+        </button>
+
+        <!-- Steps for New Install (6 steps) -->
+        <div class="step-indicator" id="stepsNew">
+            <div class="step" id="stepN1">1. K&#7871;t n&#7889;i</div>
+            <div class="step" id="stepN2">2. T&#7855;t app</div>
+            <div class="step" id="stepN3">3. Copy APK</div>
+            <div class="step" id="stepN4">4. C&#224;i &#273;&#7863;t</div>
+            <div class="step" id="stepN5">5. Quy&#7873;n</div>
+            <div class="step" id="stepN6">6. Xong</div>
+        </div>
+
+        <!-- Steps for Update (5 steps) -->
+        <div class="step-indicator" id="stepsUpdate">
+            <div class="step" id="stepU1">1. K&#7871;t n&#7889;i</div>
+            <div class="step" id="stepU2">2. Copy APK</div>
+            <div class="step" id="stepU3">3. C&#224;i &#273;&#7863;t</div>
+            <div class="step" id="stepU4">4. Quy&#7873;n</div>
+            <div class="step" id="stepU5">5. Xong</div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h3>Ti&#7871;n tr&#236;nh:</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+                <span class="progress-text" id="progressText">0%</span>
+            </div>
+        </div>
+
+        <div class="log-box" id="logBox"></div>
+
+        <div class="status-bar" id="statusBar">
+            Vui l&#242;ng ch&#7885;n ch&#7871; &#273;&#7897; c&#224;i &#273;&#7863;t.
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var shell = new ActiveXObject("WScript.Shell");
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        var scriptDir = "";
+        var adbPath = "";
+        var apkPath = "";
+        var isInstalling = false;
+        var deviceIP = "";
+        var installMode = "";
+        var MAX_INSTALL_RETRY = 8;
+
+        function init() {
+            try {
+                var fullPath = document.location.href;
+                fullPath = fullPath.replace("file:///", "").replace(/\//g, "\\");
+                fullPath = unescape(fullPath);
+                scriptDir = fullPath.substring(0, fullPath.lastIndexOf("\\"));
+                adbPath = scriptDir + "\\adb.exe";
+                apkPath = scriptDir + "\\app-voicebot.apk";
+                
+                if (!fso.FileExists(adbPath)) {
+                    alert("Khong tim thay adb.exe!");
+                }
+                if (!fso.FileExists(apkPath)) {
+                    alert("Khong tim thay app-voicebot.apk!");
+                }
+            } catch(e) {
+                alert("Loi khoi tao: " + e.message);
+            }
+        }
+
+        function selectMode(mode) {
+            installMode = mode;
+            
+            document.getElementById("modeNew").className = "mode-btn" + (mode === "new" ? " selected" : "");
+            document.getElementById("modeUpdate").className = "mode-btn" + (mode === "update" ? " selected" : "");
+            
+            document.getElementById("instructNew").className = "instructions" + (mode === "new" ? " show" : "");
+            document.getElementById("instructUpdate").className = "instructions" + (mode === "update" ? " show" : "");
+            
+            document.getElementById("ipGroup").className = "input-group show";
+            document.getElementById("installBtn").className = "btn btn-primary show";
+            document.getElementById("statusBar").className = "status-bar show";
+            
+            if (mode === "new") {
+                document.getElementById("ipAddress").value = "192.168.43.1";
+                document.getElementById("statusBar").innerHTML = "San sang cai dat moi. Ket noi WiFi Phicomm_R1_xxx truoc.";
+            } else {
+                document.getElementById("ipAddress").value = "";
+                document.getElementById("statusBar").innerHTML = "Nhap IP cua loa va bam Kiem tra.";
+            }
+            
+            document.getElementById("stepsNew").className = "step-indicator" + (mode === "new" ? " show" : "");
+            document.getElementById("stepsUpdate").className = "step-indicator" + (mode === "update" ? " show" : "");
+            
+            document.getElementById("progressSection").className = "progress-section show";
+            document.getElementById("logBox").className = "log-box show";
+        }
+
+        function logMessage(msg, type) {
+            var logBox = document.getElementById("logBox");
+            var time = new Date();
+            var timestamp = ("0" + time.getHours()).slice(-2) + ":" + 
+                           ("0" + time.getMinutes()).slice(-2) + ":" + 
+                           ("0" + time.getSeconds()).slice(-2);
+            logBox.innerHTML += '<div class="' + (type || "info") + '">[' + timestamp + '] ' + msg + '</div>';
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function setStatus(msg) { document.getElementById("statusBar").innerHTML = msg; }
+        function setProgress(percent) {
+            document.getElementById("progressFill").style.width = percent + "%";
+            document.getElementById("progressText").innerHTML = percent + "%";
+        }
+        
+        function setStep(stepNum, status) {
+            var prefix = installMode === "new" ? "stepN" : "stepU";
+            var el = document.getElementById(prefix + stepNum);
+            if (el) el.className = "step " + status;
+        }
+
+        function runAdbCommand(args) {
+            try {
+                var tempFile = scriptDir + "\\adb_output.tmp";
+                var fullCmd = 'cmd /c ""' + adbPath + '" ' + args + ' > "' + tempFile + '" 2>&1"';
+                shell.Run(fullCmd, 0, true);
+                
+                var output = "";
+                if (fso.FileExists(tempFile)) {
+                    var file = fso.OpenTextFile(tempFile, 1);
+                    if (!file.AtEndOfStream) {
+                        output = file.ReadAll();
+                    }
+                    file.Close();
+                    try { fso.DeleteFile(tempFile); } catch(e) {}
+                }
+                return output.trim();
+            } catch(e) {
+                return "ERROR: " + e.message;
+            }
+        }
+
+        function sleep(ms) {
+            var start = new Date().getTime();
+            while (new Date().getTime() < start + ms);
+        }
+
+        function reconnectAdb() {
+            logMessage("[WARN] Mat ket noi ADB, dang ket noi lai...", "warn");
+            runAdbCommand("connect " + deviceIP + ":5555");
+            sleep(2000);
+        }
+
+        function checkConnection(output) {
+            return output.indexOf("no devices") < 0 && output.indexOf("error") < 0;
+        }
+
+        function testConnection() {
+            var ip = document.getElementById("ipAddress").value;
+            if (!ip) {
+                alert("Vui long nhap dia chi IP!");
+                return;
+            }
+            deviceIP = ip;
+            logMessage("Dang kiem tra ket noi den " + ip + "...", "info");
+            setStatus("Dang kiem tra ket noi...");
+            
+            runAdbCommand("disconnect");
+            sleep(500);
+            
+            shell.Run('cmd /c taskkill /f /t /im adb.exe', 0, true);
+            sleep(500);
+            runAdbCommand("devices");
+            sleep(500);
+            
+            var result = runAdbCommand("connect " + ip + ":5555");
+            logMessage(result, result.indexOf("connected") >= 0 ? "success" : "error");
+            
+            var devices = runAdbCommand("devices");
+            if (devices.indexOf(ip) >= 0 && devices.indexOf("device") >= 0) {
+                setStatus("[OK] Ket noi thanh cong! San sang cai dat.");
+                logMessage("[OK] Ket noi ADB thanh cong!", "success");
+            } else {
+                setStatus("[LOI] Khong the ket noi. Kiem tra lai IP hoac WiFi.");
+                logMessage("[LOI] Ket noi that bai!", "error");
+            }
+        }
+
+        function restorePackages() {
+            logMessage("Dang khoi phuc trang thai cu cua loa...", "warn");
+            var packages = [
+                "com.phicomm.speaker.player",
+                "com.phicomm.speaker.device",
+                "com.phicomm.speaker.airskill",
+                "com.phicomm.speaker.exceptionreporter",
+                "com.phicomm.speaker.ijetty",
+                "com.phicomm.speaker.netctl",
+                "com.phicomm.speaker.otaservice",
+                "com.phicomm.speaker.systemtool",
+                "com.phicomm.speaker.productiontest",
+                "com.phicomm.speaker.bugreport"
+            ];
+            for (var i = 0; i < packages.length; i++) {
+                runAdbCommand("shell /system/bin/pm unhide " + packages[i]);
+            }
+            logMessage("[OK] Da khoi phuc trang thai cu.", "success");
+        }
+
+        function startInstall() {
+            if (isInstalling) return;
+            if (!installMode) {
+                alert("Vui long chon che do: Cai dat moi hoac Cap nhat!");
+                return;
+            }
+            
+            deviceIP = document.getElementById("ipAddress").value;
+            if (!deviceIP) {
+                alert("Vui long nhap dia chi IP!");
+                return;
+            }
+            
+            isInstalling = true;
+            var installBtn = document.getElementById("installBtn");
+            
+            installBtn.disabled = true;
+            installBtn.innerHTML = "DANG CAI DAT...";
+            installBtn.style.background = "#45475a";
+            
+            document.getElementById("logBox").innerHTML = "";
+            
+            var totalSteps = installMode === "new" ? 6 : 5;
+            for (var s = 1; s <= totalSteps; s++) setStep(s, "");
+            
+            try {
+                var currentStep = 1;
+                var result;
+                
+                // Step 1: Connect
+                setStep(currentStep, "active");
+                setProgress(5);
+                setStatus("Buoc " + currentStep + ": Dang ket noi thiet bi...");
+                
+                logMessage("Dang don dep ket noi cu...", "info");
+                runAdbCommand("disconnect");
+                shell.Run('cmd /c taskkill /f /t /im adb.exe', 0, true);
+                sleep(500);
+                runAdbCommand("devices");
+                sleep(500);
+                
+                logMessage("Dang ket noi den " + deviceIP + ":5555...", "info");
+                result = runAdbCommand("connect " + deviceIP + ":5555");
+                logMessage(result, "info");
+                
+                var devices = runAdbCommand("devices");
+                if (devices.indexOf(deviceIP) < 0 || devices.indexOf("device") < 0) {
+                    throw new Error("Khong the ket noi! Kiem tra IP hoac WiFi.");
+                }
+                
+                setStep(currentStep, "done");
+                logMessage("[OK] Ket noi thanh cong!", "success");
+                setProgress(10);
+                currentStep++;
+                
+                // Step 2: Hide old packages (NEW INSTALL ONLY)
+                if (installMode === "new") {
+                    setStep(currentStep, "active");
+                    setStatus("Buoc " + currentStep + ": Dang tat ung dung cu...");
+                    
+                    var packages = [
+                        "com.phicomm.speaker.player",
+                        "com.phicomm.speaker.airskill",
+                        "com.phicomm.speaker.exceptionreporter",
+                        "com.phicomm.speaker.ijetty",
+                        "com.phicomm.speaker.netctl",
+                        "com.phicomm.speaker.systemtool",
+                        "com.phicomm.speaker.device",
+                        "com.phicomm.speaker.productiontest",
+                        "com.phicomm.speaker.bugreport"
+                    ];
+                    
+                    for (var i = 0; i < packages.length; i++) {
+                        logMessage("Tat " + packages[i].split(".").pop() + "...", "info");
+                        var hideResult = runAdbCommand("shell /system/bin/pm hide " + packages[i]);
+                        if (!checkConnection(hideResult)) {
+                            reconnectAdb();
+                            i--;
+                            continue;
+                        }
+                        setProgress(10 + Math.floor((i / packages.length) * 15));
+                        sleep(100);
+                    }
+                    
+                    setStep(currentStep, "done");
+                    logMessage("[OK] Da tat cac ung dung cu!", "success");
+                    setProgress(25);
+                    currentStep++;
+                }
+                
+                // Step: Push APK
+                setStep(currentStep, "active");
+                setStatus("Buoc " + currentStep + ": Dang sao chep APK...");
+                
+                logMessage("Dang sao chep APK len thiet bi...", "info");
+                result = runAdbCommand('push "' + apkPath + '" /data/local/tmp/app-voicebot.apk');
+                
+                if (!checkConnection(result)) {
+                    reconnectAdb();
+                    result = runAdbCommand('push "' + apkPath + '" /data/local/tmp/app-voicebot.apk');
+                }
+                
+                logMessage(result, "info");
+                setStep(currentStep, "done");
+                logMessage("[OK] Sao chep APK thanh cong!", "success");
+                setProgress(installMode === "new" ? 40 : 30);
+                currentStep++;
+                
+                // Step: Install APK
+                setStep(currentStep, "active");
+                setStatus("Buoc " + currentStep + ": Dang cai dat VoiceBot...");
+                
+                var installRetry = 0;
+                var installSuccess = false;
+                
+                while (installRetry < MAX_INSTALL_RETRY && !installSuccess) {
+                    installRetry++;
+                    logMessage("Dang cai dat... (lan " + installRetry + "/" + MAX_INSTALL_RETRY + ")", "info");
+                    
+                    result = runAdbCommand("shell /system/bin/pm install -r /data/local/tmp/app-voicebot.apk");
+                    
+                    if (!checkConnection(result)) {
+                        reconnectAdb();
+                        installRetry = 0;
+                        continue;
+                    }
+                    
+                    if (result.indexOf("Success") >= 0) {
+                        installSuccess = true;
+                        break;
+                    }
+                    
+                    if (result.indexOf("INSTALL_FAILED_DEXOPT") >= 0) {
+                        logMessage("[WARN] INSTALL_FAILED_DEXOPT - Thu lai sau 1 giay...", "warn");
+                        sleep(1000);
+                        continue;
+                    }
+                    
+                    if (result.indexOf("INSTALL_FAILED_UPDATE_INCOMPATIBLE") >= 0) {
+                        logMessage("[WARN] Phat hien phien ban cu khong tuong thich!", "warn");
+                        logMessage("Dang go cai dat phien ban cu...", "info");
+                        runAdbCommand("shell /system/bin/pm uninstall info.dourok.voicebot");
+                        logMessage("[OK] Da go cai dat phien ban cu.", "success");
+                        sleep(1000);
+                        installRetry = 0;
+                        continue;
+                    }
+                    
+                    logMessage(result, "error");
+                    sleep(1000);
+                }
+                
+                if (!installSuccess) {
+                    logMessage("[LOI] Cai dat that bai sau " + MAX_INSTALL_RETRY + " lan thu!", "error");
+                    if (installMode === "new") restorePackages();
+                    throw new Error("Cai dat APK that bai!");
+                }
+                
+                setStep(currentStep, "done");
+                logMessage("[OK] Cai dat VoiceBot thanh cong!", "success");
+                setProgress(installMode === "new" ? 70 : 60);
+                currentStep++;
+                
+                // Step: Grant permissions
+                setStep(currentStep, "active");
+                setStatus("Buoc " + currentStep + ": Dang cap quyen...");
+                
+                var permissions = [
+                    "android.permission.RECORD_AUDIO",
+                    "android.permission.INTERNET",
+                    "android.permission.ACCESS_NETWORK_STATE",
+                    "android.permission.ACCESS_WIFI_STATE",
+                    "android.permission.CHANGE_WIFI_STATE",
+                    "android.permission.BLUETOOTH",
+                    "android.permission.BLUETOOTH_ADMIN",
+                    "android.permission.WRITE_EXTERNAL_STORAGE",
+                    "android.permission.READ_EXTERNAL_STORAGE"
+                ];
+                
+                logMessage("Dang cap quyen cho ung dung...", "info");
+                for (var j = 0; j < permissions.length; j++) {
+                    runAdbCommand("shell pm grant info.dourok.voicebot " + permissions[j]);
+                    setProgress((installMode === "new" ? 70 : 60) + Math.floor((j / permissions.length) * 15));
+                }
+                
+                setStep(currentStep, "done");
+                logMessage("[OK] Da cap quyen thanh cong!", "success");
+                setProgress(installMode === "new" ? 85 : 80);
+                currentStep++;
+                
+                // Step: Start app
+                setStep(currentStep, "active");
+                setStatus("Buoc " + currentStep + ": Dang khoi dong ung dung...");
+                
+                logMessage("Dang khoi dong VoiceBot...", "info");
+                runAdbCommand("shell am start -n info.dourok.voicebot/.java.activities.MainActivity");
+                sleep(1000);
+                
+                logMessage("Dang don dep file tam...", "info");
+                runAdbCommand("shell rm /data/local/tmp/app-voicebot.apk");
+                
+                setStep(currentStep, "done");
+                setProgress(100);
+                
+                logMessage("", "info");
+                logMessage("=========================================", "success");
+                logMessage("[OK] CAI DAT THANH CONG!", "success");
+                logMessage("=========================================", "success");
+                
+                setStatus("[OK] CAI DAT HOAN TAT!");
+                
+                if (installMode === "new") {
+                    alert("CAI DAT THANH CONG!\n\n" +
+                          "Buoc tiep theo:\n" +
+                          "1. RUT DIEN cua loa\n" +
+                          "2. Cho 10-15 giay\n" +
+                          "3. CAM LAI DIEN cho loa\n" +
+                          "4. Doi loa khoi dong (khoang 30 giay)\n" +
+                          "5. GIU NUT den khi nghe 'Vao che do cai dat WiFi'\n" +
+                          "6. Ket noi may tinh vao WiFi: Phicomm_R1\n" +
+                          "7. Mo trinh duyet: http://192.168.43.1:8080\n" +
+                          "8. Chon WiFi nha ban va nhap mat khau\n\n" +
+                          "Sau khi ket noi WiFi, loa se doc dia chi IP.");
+                } else {
+                    alert("CAP NHAT THANH CONG!\n\n" +
+                          "Loa da duoc cap nhat phien ban moi.\n" +
+                          "VoiceBot da tu dong khoi dong.\n\n" +
+                          "Ban co the su dung ngay!");
+                }
+                
+            } catch(e) {
+                logMessage("[LOI] " + e.message, "error");
+                setStatus("[LOI] " + e.message);
+                
+                var totalSteps2 = installMode === "new" ? 6 : 5;
+                for (var k = 1; k <= totalSteps2; k++) {
+                    var prefix2 = installMode === "new" ? "stepN" : "stepU";
+                    var stepEl = document.getElementById(prefix2 + k);
+                    if (stepEl && stepEl.className.indexOf("active") >= 0) {
+                        setStep(k, "error");
+                        break;
+                    }
+                }
+                
+                alert("CAI DAT THAT BAI!\n\n" + e.message + "\n\nVui long kiem tra ket noi va thu lai.");
+            }
+            
+            isInstalling = false;
+            installBtn.disabled = false;
+            installBtn.innerHTML = "BAT DAU CAI DAT";
+            installBtn.style.background = "#a6e3a1";
+        }
+
+        window.onload = init;
+        window.resizeTo(880, 1100);
+    </script>
+</body>
+</html>
