@@ -3,11 +3,11 @@
   "release_date": "2025-12-24",
   "apk_url": "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/app-voicebot.apk",
   "changelog": [
-    "✅ AI Center: Kết nối từ điện thoại tới loa qua web",
-    "✅ Chatbox hội thoại giữa AI và người dùng",
-    "✅ Điều khiển cơ bản: Volume, Bluetooth, Wake word",
-    "✅ Equalizer với các preset cài sẵn",
-    "✅ Fix EQ preset persistence và wake word sync"
+    "AI Center: Ket noi tu dien thoai toi loa qua web",
+    "Chatbox hoi thoai giua AI va nguoi dung",
+    "Dieu khien co ban: Volume, Bluetooth, Wake word",
+    "Equalizer voi cac preset cai san",
+    "Fix EQ preset persistence va wake word sync"
   ],
   "min_compatible_version": "2.0.0"
 }

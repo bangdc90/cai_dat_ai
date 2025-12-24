@@ -344,17 +344,31 @@
         function readLocalVersion() {
             try {
                 if (fso.FileExists(versionJsonPath)) {
-                    var stream = new ActiveXObject("ADODB.Stream");
-                    stream.Type = 2; // Text
-                    stream.Charset = "utf-8";
-                    stream.Open();
-                    stream.LoadFromFile(versionJsonPath);
-                    var content = stream.ReadText();
-                    stream.Close();
-                    
-                    var versionData = JSON.parse(content);
-                    localVersion = versionData.latest_version || "0.0.0";
-                    logMessage("[INFO] Phiên bản APK hiện tại: " + localVersion, "info");
+                    try {
+                        // Delete and recreate if corrupted
+                        var file = fso.OpenTextFile(versionJsonPath, 1);
+                        var content = file.ReadAll();
+                        file.Close();
+                        
+                        // Remove all non-printable characters
+                        var cleanContent = "";
+                        for (var i = 0; i < content.length; i++) {
+                            var code = content.charCodeAt(i);
+                            // Keep only printable ASCII + newlines/tabs
+                            if ((code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9) {
+                                cleanContent += content.charAt(i);
+                            }
+                        }
+                        
+                        var versionData = JSON.parse(cleanContent);
+                        localVersion = versionData.latest_version || "0.0.0";
+                        logMessage("[INFO] Phien ban APK hien tai: " + localVersion, "info");
+                    } catch(parseError) {
+                        logMessage("[CANH BAO] Loi doc version.json: " + parseError.message, "warn");
+                        // Delete corrupted file and start fresh
+                        try { fso.DeleteFile(versionJsonPath); } catch(e) {}
+                        localVersion = "0.0.0";
+                    }
                 } else {
                     localVersion = "0.0.0";
                     logMessage("[CẢNH BÁO] Chưa có file version.json, sẽ tải mới", "warn");
@@ -380,7 +394,12 @@
                 http.Send();
                 
                 if (http.Status === 200) {
-                    return http.ResponseText;
+                    var responseText = http.ResponseText;
+                    // Remove UTF-8 BOM if present (0xEF 0xBB 0xBF)
+                    if (responseText.charCodeAt(0) === 0xFEFF) {
+                        responseText = responseText.substring(1);
+                    }
+                    return responseText;
                 }
                 logMessage("[LỖI] HTTP Status: " + http.Status, "error");
                 return null;
