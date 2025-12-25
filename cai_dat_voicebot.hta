@@ -371,59 +371,51 @@
             logMessage("[INFO] Đang tải " + filePath + "...", "info");
             try {
                 var url = "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/" + filePath;
-                var tempFile = scriptDir + "\\temp_download.txt";
+                // Use Windows TEMP folder - always has write permission
+                var tempFolder = shell.ExpandEnvironmentStrings("%TEMP%");
+                var tempFile = tempFolder + "\\voicebot_" + new Date().getTime() + ".txt";
                 
-                if (fso.FileExists(tempFile)) {
-                    fso.DeleteFile(tempFile);
-                }
-                
-                // Download file and remove Zone.Identifier to avoid security restrictions
-                var psCmd = 'powershell -Command "$ProgressPreference = \'SilentlyContinue\'; ' +
-                           'try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ' +
+                // Use PowerShell to download and save as ASCII (compatible with FileSystemObject)
+                var psCmd = 'powershell -ExecutionPolicy Bypass -Command "' +
+                           '$ProgressPreference = \'SilentlyContinue\'; ' +
+                           '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ' +
+                           'try { ' +
                            '$content = (New-Object System.Net.WebClient).DownloadString(\'' + url + '\'); ' +
-                           '[System.IO.File]::WriteAllText(\'' + tempFile + '\', $content, [System.Text.Encoding]::UTF8); ' +
-                           'Unblock-File -Path \'' + tempFile + '\' -ErrorAction SilentlyContinue; exit 0 } ' +
-                           'catch { exit 1 }"';
-                
+                           '$content | Out-File -FilePath \'' + tempFile + '\' -Encoding ASCII -NoNewline; ' +
+                           'exit 0 } catch { exit 1 }"';
                 var result = shell.Run(psCmd, 0, true);
                 
-                if (result === 0 && fso.FileExists(tempFile)) {
-                    try {
-                        var stream = new ActiveXObject("ADODB.Stream");
-                        stream.Type = 2; // Text
-                        stream.Charset = "utf-8";
-                        stream.Open();
-                        stream.LoadFromFile(tempFile);
-                        var content = stream.ReadText();
-                        stream.Close();
-                        
-                        // Remove UTF-8 BOM if present
-                        if (content.charCodeAt(0) === 0xFEFF) {
-                            content = content.substring(1);
-                        }
-                        
+                if (result !== 0 || !fso.FileExists(tempFile)) {
+                    // Fallback: Use certutil
+                    logMessage("[INFO] Thử certutil...", "info");
+                    var certutilCmd = 'cmd /c certutil -urlcache -split -f "' + url + '" "' + tempFile + '" >nul 2>&1';
+                    result = shell.Run(certutilCmd, 0, true);
+                }
+                
+                if (fso.FileExists(tempFile)) {
+                    // Read with FileSystemObject in ASCII mode
+                    var file = fso.OpenTextFile(tempFile, 1, false, 0); // 0 = ASCII
+                    var content = "";
+                    if (!file.AtEndOfStream) {
+                        content = file.ReadAll();
+                    }
+                    file.Close();
+                    
+                    // Cleanup
+                    try { fso.DeleteFile(tempFile); } catch(e) {}
+                    
+                    // Clean content - remove BOM and trailing whitespace
+                    content = content.replace(/^\uFEFF/, '').replace(/^\xEF\xBB\xBF/, '').trim();
+                    
+                    if (content.length > 0) {
                         logMessage("[OK] Tải thành công (" + content.length + " chars)", "success");
                         return content;
-                    } finally {
-                        // Always delete temp file
-                        try {
-                            if (fso.FileExists(tempFile)) {
-                                fso.DeleteFile(tempFile);
-                            }
-                        } catch(e) {}
                     }
                 }
                 
                 throw new Error("Không thể tải file từ GitHub. Vui lòng kiểm tra kết nối Internet.");
             } catch(e) {
                 logMessage("[LỖI] " + e.message, "error");
-                // Clean up temp file on error
-                try {
-                    var tempFile2 = scriptDir + "\\temp_download.txt";
-                    if (fso.FileExists(tempFile2)) {
-                        fso.DeleteFile(tempFile2);
-                    }
-                } catch(e2) {}
                 return null;
             }
         }
