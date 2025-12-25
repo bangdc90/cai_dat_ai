@@ -368,7 +368,7 @@
         }
 
         function readGitHubFile(filePath) {
-            // Try PowerShell method first (more reliable)
+            logMessage("[INFO] Đang tải " + filePath + "...", "info");
             try {
                 var url = "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/" + filePath;
                 var tempFile = scriptDir + "\\temp_download.txt";
@@ -388,82 +388,42 @@
                 var result = shell.Run(psCmd, 0, true);
                 
                 if (result === 0 && fso.FileExists(tempFile)) {
-                    // Now safe to use ADODB.Stream (Zone.Identifier removed)
-                    var stream = new ActiveXObject("ADODB.Stream");
-                    stream.Type = 2; // Text
-                    stream.Charset = "utf-8";
-                    stream.Open();
-                    stream.LoadFromFile(tempFile);
-                    var content = stream.ReadText();
-                    stream.Close();
-                    fso.DeleteFile(tempFile);
-                    
-                    // Remove UTF-8 BOM if present
-                    if (content.charCodeAt(0) === 0xFEFF) {
-                        content = content.substring(1);
-                    }
-                    return content;
-                }
-            } catch(e) {
-                logMessage("[CẢNH BÁO] PowerShell failed: " + e.message, "warn");
-            }
-            
-            // Fallback to XMLHTTP
-            try {
-                var http = null;
-                var httpTypes = [
-                    "MSXML2.ServerXMLHTTP.6.0",
-                    "MSXML2.ServerXMLHTTP.3.0",
-                    "MSXML2.ServerXMLHTTP",
-                    "MSXML2.XMLHTTP.6.0",
-                    "MSXML2.XMLHTTP.3.0",
-                    "MSXML2.XMLHTTP",
-                    "Microsoft.XMLHTTP"
-                ];
-                
-                for (var i = 0; i < httpTypes.length; i++) {
                     try {
-                        http = new ActiveXObject(httpTypes[i]);
-                        break;
-                    } catch(e) {}
-                }
-                
-                if (!http) {
-                    throw new Error("Không tìm thấy HTTP component");
-                }
-                
-                var url = "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/" + filePath;
-                
-                // Try both open and Open
-                try {
-                    http.open("GET", url, false);
-                } catch(e) {
-                    http.Open("GET", url, false);
-                }
-                
-                try { http.setRequestHeader("User-Agent", "Mozilla/5.0"); } catch(e) {}
-                try { http.setRequestHeader("Cache-Control", "no-cache"); } catch(e) {}
-                try { http.setTimeouts(10000, 10000, 10000, 30000); } catch(e) {}
-                try { http.setOption(2, 13056); } catch(e) {}
-                
-                try {
-                    http.send();
-                } catch(e) {
-                    http.Send();
-                }
-                
-                var status = http.status || http.Status;
-                if (status === 200) {
-                    var responseText = http.responseText || http.ResponseText;
-                    if (responseText.charCodeAt(0) === 0xFEFF) {
-                        responseText = responseText.substring(1);
+                        var stream = new ActiveXObject("ADODB.Stream");
+                        stream.Type = 2; // Text
+                        stream.Charset = "utf-8";
+                        stream.Open();
+                        stream.LoadFromFile(tempFile);
+                        var content = stream.ReadText();
+                        stream.Close();
+                        
+                        // Remove UTF-8 BOM if present
+                        if (content.charCodeAt(0) === 0xFEFF) {
+                            content = content.substring(1);
+                        }
+                        
+                        logMessage("[OK] Tải thành công (" + content.length + " chars)", "success");
+                        return content;
+                    } finally {
+                        // Always delete temp file
+                        try {
+                            if (fso.FileExists(tempFile)) {
+                                fso.DeleteFile(tempFile);
+                            }
+                        } catch(e) {}
                     }
-                    return responseText;
                 }
-                logMessage("[LỖI] HTTP Status: " + status, "error");
-                return null;
+                
+                throw new Error("Không thể tải file từ GitHub. Vui lòng kiểm tra kết nối Internet.");
             } catch(e) {
-                logMessage("[LỖI] XMLHTTP failed: " + e.message, "error");
+                logMessage("[LỖI] " + e.message, "error");
+                // Clean up temp file on error
+                try {
+                    var tempFile2 = scriptDir + "\\temp_download.txt";
+                    if (fso.FileExists(tempFile2)) {
+                        fso.DeleteFile(tempFile2);
+                    }
+                } catch(e2) {}
                 return null;
             }
         }
