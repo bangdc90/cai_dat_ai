@@ -346,14 +346,12 @@
         function readLocalVersion() {
             try {
                 if (fso.FileExists(versionJsonPath)) {
-                    var stream = new ActiveXObject("ADODB.Stream");
-                    stream.Type = 2; // Text
-                    stream.Charset = "utf-8";
-                    stream.Open();
-                    stream.LoadFromFile(versionJsonPath);
-                    var content = stream.ReadText();
-                    stream.Close();
+                    // Use FileSystemObject for local files (safer, no security restrictions)
+                    var file = fso.OpenTextFile(versionJsonPath, 1, false, -2); // -2 = System default
+                    var content = file.ReadAll();
+                    file.Close();
                     
+                    // Remove BOM if present
                     if (content.charCodeAt(0) === 0xFEFF) {
                         content = content.substring(1);
                     }
@@ -656,31 +654,18 @@
                 
                 setProgress(90);
                 
-                // Tải file version.json trực tiếp từ GitHub
-                logMessage("[INFO] Đang tải version.json...", "info");
+                // Tải và lưu file version.json
+                logMessage("[INFO] Đang cập nhật version.json...", "info");
                 try {
-                    var httpVer = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
-                    httpVer.Open("GET", "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/version.json", false);
-                    httpVer.SetTimeouts(10000, 10000, 10000, 10000);
-                    httpVer.Send();
-                    
-                    if (httpVer.Status === 200) {
-                        var streamVer = new ActiveXObject("ADODB.Stream");
-                        streamVer.Type = 2; // Text
-                        streamVer.Charset = "utf-8";
-                        streamVer.Open();
-                        streamVer.WriteText(httpVer.ResponseText);
-                        
-                        if (fso.FileExists(versionJsonPath)) {
-                            fso.DeleteFile(versionJsonPath);
-                        }
-                        
-                        streamVer.SaveToFile(versionJsonPath, 2);
-                        streamVer.Close();
+                    var newVersionJson = readGitHubFile("version.json");
+                    if (newVersionJson) {
+                        var f = fso.CreateTextFile(versionJsonPath, true);
+                        f.Write(newVersionJson);
+                        f.Close();
                         logMessage("[OK] Đã cập nhật version.json", "success");
                     }
                 } catch(e) {
-                    logMessage("[CẢNH BÁO] Không tải được version.json: " + e.message, "warn");
+                    logMessage("[CẢNH BÁO] Không lưu được version.json: " + e.message, "warn");
                 }
                 
                 localVersion = serverVersion;
