@@ -346,39 +346,22 @@
         function readLocalVersion() {
             try {
                 if (fso.FileExists(versionJsonPath)) {
-                    try {
-                        // Delete and recreate if corrupted
-                        var file = fso.OpenTextFile(versionJsonPath, 1);
-                        var content = file.ReadAll();
-                        file.Close();
-                        
-                        // Remove all non-printable characters
-                        var cleanContent = "";
-                        for (var i = 0; i < content.length; i++) {
-                            var code = content.charCodeAt(i);
-                            // Keep only printable ASCII + newlines/tabs
-                            if ((code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9) {
-                                cleanContent += content.charAt(i);
-                            }
-                        }
-                        
-                        var versionData = JSON.parse(cleanContent);
-                        localVersion = versionData.latest_version || "0.0.0";
-                        logMessage("[INFO] Phien ban APK hien tai: " + localVersion, "info");
-                    } catch(parseError) {
-                        logMessage("[CANH BAO] Loi doc version.json: " + parseError.message, "warn");
-                        // Delete corrupted file and start fresh
-                        try { fso.DeleteFile(versionJsonPath); } catch(e) {}
-                        localVersion = "0.0.0";
+                    var stream = new ActiveXObject("ADODB.Stream");
+                    stream.Type = 2; // Text
+                    stream.Charset = "utf-8";
+                    stream.Open();
+                    stream.LoadFromFile(versionJsonPath);
+                    var content = stream.ReadText();
+                    stream.Close();
+                    
+                    if (content.charCodeAt(0) === 0xFEFF) {
+                        content = content.substring(1);
                     }
+                    
+                    var versionData = JSON.parse(content);
+                    localVersion = versionData.latest_version || "0.0.0";
                 } else {
                     localVersion = "0.0.0";
-                    logMessage("[CẢNH BÁO] Chưa có file version.json, sẽ tải mới", "warn");
-                    // Tạo file version.json rỗng
-                    var defaultJson = '{"latest_version":"0.0.0","release_date":"","apk_url":"","changelog":[]}';
-                    var f = fso.CreateTextFile(versionJsonPath, true);
-                    f.Write(defaultJson);
-                    f.Close();
                 }
             } catch(e) {
                 localVersion = "0.0.0";
@@ -387,26 +370,100 @@
         }
 
         function readGitHubFile(filePath) {
+            // Try PowerShell method first (more reliable)
             try {
-                var http = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+                var url = "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/" + filePath;
+                var tempFile = scriptDir + "\\temp_download.txt";
+                
+                if (fso.FileExists(tempFile)) {
+                    fso.DeleteFile(tempFile);
+                }
+                
+                var psCmd = 'powershell -Command "$ProgressPreference = \'SilentlyContinue\'; ' +
+                           'try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ' +
+                           '$content = (New-Object System.Net.WebClient).DownloadString(\'' + url + '\'); ' +
+                           '[System.IO.File]::WriteAllText(\'' + tempFile + '\', $content, [System.Text.Encoding]::UTF8) } ' +
+                           'catch { exit 1 }"';
+                
+                var result = shell.Run(psCmd, 0, true);
+                
+                if (result === 0 && fso.FileExists(tempFile)) {
+                    // Read as binary to avoid encoding issues
+                    var stream = new ActiveXObject("ADODB.Stream");
+                    stream.Type = 2; // Text
+                    stream.Charset = "utf-8";
+                    stream.Open();
+                    stream.LoadFromFile(tempFile);
+                    var content = stream.ReadText();
+                    stream.Close();
+                    fso.DeleteFile(tempFile);
+                    
+                    // Remove UTF-8 BOM if present
+                    if (content.charCodeAt(0) === 0xFEFF) {
+                        content = content.substring(1);
+                    }
+                    return content;
+                }
+            } catch(e) {
+                logMessage("[CẢNH BÁO] PowerShell failed: " + e.message, "warn");
+            }
+            
+            // Fallback to XMLHTTP
+            try {
+                var http = null;
+                var httpTypes = [
+                    "MSXML2.ServerXMLHTTP.6.0",
+                    "MSXML2.ServerXMLHTTP.3.0",
+                    "MSXML2.ServerXMLHTTP",
+                    "MSXML2.XMLHTTP.6.0",
+                    "MSXML2.XMLHTTP.3.0",
+                    "MSXML2.XMLHTTP",
+                    "Microsoft.XMLHTTP"
+                ];
+                
+                for (var i = 0; i < httpTypes.length; i++) {
+                    try {
+                        http = new ActiveXObject(httpTypes[i]);
+                        break;
+                    } catch(e) {}
+                }
+                
+                if (!http) {
+                    throw new Error("Không tìm thấy HTTP component");
+                }
+                
                 var url = "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/" + filePath;
                 
-                http.Open("GET", url, false);
-                http.SetTimeouts(10000, 10000, 10000, 10000);
-                http.Send();
+                // Try both open and Open
+                try {
+                    http.open("GET", url, false);
+                } catch(e) {
+                    http.Open("GET", url, false);
+                }
                 
-                if (http.Status === 200) {
-                    var responseText = http.ResponseText;
-                    // Remove UTF-8 BOM if present (0xEF 0xBB 0xBF)
+                try { http.setRequestHeader("User-Agent", "Mozilla/5.0"); } catch(e) {}
+                try { http.setRequestHeader("Cache-Control", "no-cache"); } catch(e) {}
+                try { http.setTimeouts(10000, 10000, 10000, 30000); } catch(e) {}
+                try { http.setOption(2, 13056); } catch(e) {}
+                
+                try {
+                    http.send();
+                } catch(e) {
+                    http.Send();
+                }
+                
+                var status = http.status || http.Status;
+                if (status === 200) {
+                    var responseText = http.responseText || http.ResponseText;
                     if (responseText.charCodeAt(0) === 0xFEFF) {
                         responseText = responseText.substring(1);
                     }
                     return responseText;
                 }
-                logMessage("[LỖI] HTTP Status: " + http.Status, "error");
+                logMessage("[LỖI] HTTP Status: " + status, "error");
                 return null;
             } catch(e) {
-                logMessage("[LỖI] Fetch: " + e.message, "error");
+                logMessage("[LỖI] XMLHTTP failed: " + e.message, "error");
                 return null;
             }
         }
@@ -497,34 +554,105 @@
                 setProgress(30);
                 
                 var apkUrl = serverInfo.apk_url || "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/app-voicebot.apk";
-                var http = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
                 
-                http.Open("GET", apkUrl, false);
-                http.SetTimeouts(120000, 120000, 120000, 120000);
-                
-                logMessage("[CHỜ] Đang tải file (~17MB), vui lòng chờ...", "warn");
-                http.Send();
-                
-                if (http.Status !== 200) {
-                    throw new Error("Lỗi tải APK: HTTP " + http.Status);
+                // Try PowerShell download first (more reliable for large files)
+                var downloadSuccess = false;
+                try {
+                    logMessage("[INFO] Đang tải bằng PowerShell...", "info");
+                    
+                    if (fso.FileExists(apkPath)) {
+                        fso.DeleteFile(apkPath);
+                    }
+                    
+                    var psCmd = 'powershell -Command "$ProgressPreference = \'SilentlyContinue\'; ' +
+                               '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ' +
+                               '$client = New-Object System.Net.WebClient; ' +
+                               '$client.Headers.Add(\'User-Agent\', \'Mozilla/5.0\'); ' +
+                               'try { $client.DownloadFile(\'' + apkUrl + '\', \'' + apkPath + '\'); exit 0 } ' +
+                               'catch { Write-Host $_.Exception.Message; exit 1 }"';
+                    
+                    var psResult = shell.Run(psCmd, 0, true);
+                    
+                    if (psResult === 0 && fso.FileExists(apkPath)) {
+                        setProgress(70);
+                        var fileSize = Math.round(fso.GetFile(apkPath).Size / 1024 / 1024 * 10) / 10;
+                        logMessage("[OK] Tải thành công! Dung lượng: " + fileSize + " MB", "success");
+                        downloadSuccess = true;
+                    }
+                } catch(e) {
+                    logMessage("[CẢNH BÁO] PowerShell download failed: " + e.message, "warn");
                 }
                 
-                setProgress(70);
-                logMessage("[OK] Tải thành công! Dung lượng: " + Math.round(http.ResponseBody.length / 1024 / 1024 * 10) / 10 + " MB", "success");
-                
-                // Lưu APK
-                logMessage("[INFO] Đang lưu file...", "info");
-                var stream = new ActiveXObject("ADODB.Stream");
-                stream.Type = 1;
-                stream.Open();
-                stream.Write(http.ResponseBody);
-                
-                if (fso.FileExists(apkPath)) {
-                    fso.DeleteFile(apkPath);
+                // Fallback to XMLHTTP if PowerShell failed
+                if (!downloadSuccess) {
+                    logMessage("[INFO] Đang thử tải bằng XMLHTTP...", "info");
+                    
+                    var http = null;
+                    var httpTypes = [
+                        "MSXML2.ServerXMLHTTP.6.0",
+                        "MSXML2.ServerXMLHTTP.3.0",
+                        "MSXML2.ServerXMLHTTP",
+                        "MSXML2.XMLHTTP.6.0",
+                        "MSXML2.XMLHTTP.3.0",
+                        "MSXML2.XMLHTTP",
+                        "Microsoft.XMLHTTP"
+                    ];
+                    
+                    for (var i = 0; i < httpTypes.length; i++) {
+                        try {
+                            http = new ActiveXObject(httpTypes[i]);
+                            logMessage("[INFO] Sử dụng: " + httpTypes[i], "info");
+                            break;
+                        } catch(e) {}
+                    }
+                    
+                    if (!http) {
+                        throw new Error("Không tìm thấy HTTP component");
+                    }
+                    
+                    // Try both open and Open
+                    try {
+                        http.open("GET", apkUrl, false);
+                    } catch(e) {
+                        http.Open("GET", apkUrl, false);
+                    }
+                    
+                    try { http.setRequestHeader("User-Agent", "Mozilla/5.0"); } catch(e) {}
+                    try { http.setRequestHeader("Cache-Control", "no-cache"); } catch(e) {}
+                    try { http.setTimeouts(120000, 120000, 120000, 180000); } catch(e) {}
+                    try { http.setOption(2, 13056); } catch(e) {}
+                    
+                    logMessage("[CHỜ] Đang tải file (~17MB), vui lòng chờ...", "warn");
+                    
+                    try {
+                        http.send();
+                    } catch(e) {
+                        http.Send();
+                    }
+                    
+                    var status = http.status || http.Status;
+                    if (status !== 200) {
+                        throw new Error("Lỗi tải APK: HTTP " + status);
+                    }
+                    
+                    setProgress(70);
+                    var responseBody = http.responseBody || http.ResponseBody;
+                    logMessage("[OK] Tải thành công! Dung lượng: " + Math.round(responseBody.length / 1024 / 1024 * 10) / 10 + " MB", "success");
+                    
+                    // Lưu APK
+                    logMessage("[INFO] Đang lưu file...", "info");
+                    var stream = new ActiveXObject("ADODB.Stream");
+                    stream.Type = 1;
+                    stream.Open();
+                    stream.Write(responseBody);
+                    
+                    if (fso.FileExists(apkPath)) {
+                        fso.DeleteFile(apkPath);
+                    }
+                    
+                    stream.SaveToFile(apkPath, 2);
+                    stream.Close();
                 }
-                
-                stream.SaveToFile(apkPath, 2);
-                stream.Close();
                 
                 setProgress(90);
                 
