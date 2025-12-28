@@ -116,6 +116,32 @@
         }
         .btn-primary.show { display: block; }
         .btn-secondary { background: #45475a; color: #fff; }
+        .download-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+        .download-actions.show { display: flex; }
+        .download-actions.hide { display: none; }
+        #downloadBtn {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .btn-skip {
+            background: #6c7086;
+            color: #fff;
+            padding: 16px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .btn-skip:hover {
+            background: #7f849c;
+        }
         .progress-section { margin-bottom: 12px; display: none; }
         .progress-section.show { display: block; }
         .progress-section h3 { font-size: 15px; margin-bottom: 8px; color: #cdd6f4; }
@@ -212,10 +238,15 @@
             ⚠ KHÔNG ĐƯỢC RÚT ĐIỆN CỦA LOA KHI ĐANG CÀI ĐẶT!
         </div>
 
-        <!-- Button kiểm tra và tải APK -->
-        <button id="downloadBtn" class="btn btn-primary show" onclick="checkAndDownloadAPK()" style="margin-bottom: 20px;">
-            📥 KIỂM TRA VÀ TẢI APK MỚI NHẤT
-        </button>
+        <!-- Buttons kiểm tra/tải APK và Bỏ qua -->
+        <div class="download-actions show" id="downloadActions">
+            <button id="downloadBtn" class="btn btn-primary show" onclick="checkAndDownloadAPK()">
+                📥 KIỂM TRA VÀ TẢI APK MỚI NHẤT
+            </button>
+            <button class="btn-skip" onclick="skipDownload()">
+                ⏩ BỎ QUA
+            </button>
+        </div>
 
         <!-- Mode Selection -->
         <div class="mode-selection">
@@ -431,6 +462,19 @@
                 if (p1 < p2) return -1;
             }
             return 0;
+        }
+
+        function skipDownload() {
+            logMessage("[INFO] Bỏ qua kiểm tra cập nhật", "info");
+            logMessage("[INFO] Sử dụng APK hiện có: v" + localVersion, "info");
+            setStatus("Sử dụng APK hiện có: v" + localVersion);
+            setProgress(100);
+            
+            // Hide download buttons
+            document.getElementById("downloadActions").className = "download-actions hide";
+            
+            // Show mode selection
+            showModeSelection();
         }
 
         function checkAndDownloadAPK() {
@@ -770,8 +814,8 @@
         function selectMode(mode) {
             installMode = mode;
             
-            // Hide download button
-            document.getElementById("downloadBtn").style.display = "none";
+            // Hide download actions
+            document.getElementById("downloadActions").className = "download-actions hide";
             
             document.getElementById("modeNew").className = "mode-btn" + (mode === "new" ? " selected" : "");
             document.getElementById("modeUpdate").className = "mode-btn" + (mode === "update" ? " selected" : "");
