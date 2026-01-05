@@ -7,7 +7,8 @@
     "Tat doc phien ban",
     "Them dieu chinh am luong cua AI khi noi chuyen (AI Volume Reduction)",
     "Tat led vien tu AI center",
-    "Sua loi ko luu trang thai on/off Equalizer"
+    "Sua loi ko luu trang thai on/off Equalizer",
+    "Sua loi khong tat alarm khi dang o che do bluetooth"
   ],
   "min_compatible_version": "2.0.0"
 }
