@@ -1,13 +1,13 @@
 {
-  "latest_version": "2.0.6.3",
-  "release_date": "2025-12-24",
+  "latest_version": "2.0.6.4",
+  "release_date": "2026-01-05",
   "apk_url": "https://raw.githubusercontent.com/bangdc90/cai_dat_ai/main/app-voicebot.apk",
   "changelog": [
-    "Nang cap chat luong nhac tren YT",
-    "Cai thien van de ngat chu cuoi cau",
-    "Cai thien tinh nang phat tiep bai hat truoc do",
-    "Sua loi khong bao hen gio lap lai (Daily alarm)",
-    "Sua loi dong bo volume khi ra lenh bang giong noi va tren AI Center"
+    "Them tu khoa Hi Sophia",
+    "Tat doc phien ban",
+    "Them dieu chinh am luong cua AI khi noi chuyen (AI Volume Reduction)",
+    "Tat led vien tu AI center",
+    "Sua loi ko luu trang thai on/off Equalizer"
   ],
   "min_compatible_version": "2.0.0"
 }
